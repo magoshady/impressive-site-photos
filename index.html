@@ -189,7 +189,19 @@
 
         document.addEventListener("DOMContentLoaded", function() {
             // Check for URL parameters and auto-fill fields
-            const params = new URLSearchParams(window.location.search);
+            // Try to get parameters from current URL or parent URL (if in iframe)
+            let params;
+            try {
+                // If embedded in iframe, try to get parent URL parameters
+                if (window.parent !== window) {
+                    params = new URLSearchParams(window.parent.location.search);
+                } else {
+                    params = new URLSearchParams(window.location.search);
+                }
+            } catch (e) {
+                // If cross-origin, fall back to current URL
+                params = new URLSearchParams(window.location.search);
+            }
             
             // Auto-fill Name field if provided in URL
             const name = params.get('Name');
