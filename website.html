@@ -6,17 +6,9 @@
         body {
             font-family: Arial, sans-serif;
             margin: 40px auto;
-            max-width: 800px;
-            padding: 40px;
             background-color: #ffffff;
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        @media (max-width: 900px) {
-            body {
-                margin: 20px;
-                padding: 20px;
-            }
         }
         .header-section {
             margin-bottom: 30px;
@@ -212,9 +204,6 @@
                 document.getElementById("id").value = uniqueId;
             }
 
-            // Send initial height to parent iframe
-            notifyParentOfHeight();
-
             // Switchboard Photos drag & drop functionality
             const switchboardContainer = document.getElementById("switchboard-container");
             const switchboardInput = document.getElementById("switchboard-photos");
@@ -251,11 +240,9 @@
                         energyBillFile = file;
                         document.getElementById("energy-bill-preview").textContent = `Selected: ${file.name}`;
                         document.getElementById("energy-bill-error").textContent = "";
-                        notifyParentOfHeight();
                     } else {
                         document.getElementById("energy-bill-error").textContent = "Please select a PDF file.";
                         e.target.value = "";
-                        notifyParentOfHeight();
                     }
                 }
             });
@@ -267,7 +254,6 @@
                 // Validation
                 if (!energyBillFile) {
                     document.getElementById("energy-bill-error").textContent = "Energy bill is required.";
-                    notifyParentOfHeight();
                     return;
                 }
 
@@ -350,7 +336,6 @@
 
             preview.innerHTML = "";
             preview.appendChild(fileList);
-            notifyParentOfHeight();
         }
 
         function removeSwitchboardFile(index) {
@@ -366,13 +351,6 @@
         function hideLoading() {
             document.getElementById("loading-overlay").style.display = "none";
             document.getElementById("energy-form").classList.remove("form-disabled");
-        }
-
-        // Notify parent iframe of height changes
-        function notifyParentOfHeight() {
-            setTimeout(function() {
-                window.parent.postMessage({ type: "resize", height: document.body.scrollHeight }, "*");
-            }, 100);
         }
     </script>
 </head>
