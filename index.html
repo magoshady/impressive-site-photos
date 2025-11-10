@@ -187,22 +187,8 @@
         let switchboardFiles = [];
         let energyBillFile = null;
 
-        document.addEventListener("DOMContentLoaded", function() {
-            // Check for URL parameters and auto-fill fields
-            // Try to get parameters from current URL or parent URL (if in iframe)
-            let params;
-            try {
-                // If embedded in iframe, try to get parent URL parameters
-                if (window.parent !== window) {
-                    params = new URLSearchParams(window.parent.location.search);
-                } else {
-                    params = new URLSearchParams(window.location.search);
-                }
-            } catch (e) {
-                // If cross-origin, fall back to current URL
-                params = new URLSearchParams(window.location.search);
-            }
-            
+        // Function to populate form fields from URL parameters
+        function populateFormFromParams(params) {
             // Auto-fill Name field if provided in URL
             const name = params.get('Name');
             if (name) {
@@ -222,6 +208,25 @@
             } else {
                 const uniqueId = 'EA_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                 document.getElementById("id").value = uniqueId;
+            }
+        }
+
+        // Listen for URL parameters from parent window
+        window.addEventListener("message", function(event) {
+            if (event.data?.type === "urlParams" && event.data.params) {
+                const params = new URLSearchParams(event.data.params);
+                populateFormFromParams(params);
+            }
+        });
+
+        document.addEventListener("DOMContentLoaded", function() {
+            // Check for URL parameters and auto-fill fields
+            const params = new URLSearchParams(window.location.search);
+            populateFormFromParams(params);
+            
+            // Request URL params from parent if in iframe
+            if (window.parent !== window) {
+                window.parent.postMessage({ type: "requestUrlParams" }, "*");
             }
 
             // Send initial height to parent iframe
