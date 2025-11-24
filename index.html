@@ -185,7 +185,7 @@
     </style>
     <script>
         let switchboardFiles = [];
-        let energyBillFile = null;
+        let energyBillFiles = [];
 
         // Function to populate form fields from URL parameters
         function populateFormFromParams(params) {
@@ -262,19 +262,9 @@
 
             // Energy bill handling
             document.getElementById("energy-bill").addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    if (file.type === 'application/pdf') {
-                        energyBillFile = file;
-                        document.getElementById("energy-bill-preview").textContent = `Selected: ${file.name}`;
-                        document.getElementById("energy-bill-error").textContent = "";
-                        notifyParentOfHeight();
-                    } else {
-                        document.getElementById("energy-bill-error").textContent = "Please select a PDF file.";
-                        e.target.value = "";
-                        notifyParentOfHeight();
-                    }
-                }
+                const files = Array.from(e.target.files);
+                handleEnergyBillFiles(files);
+                e.target.value = ""; // Reset input to allow re-selecting same files
             });
 
             // Form submission
@@ -282,8 +272,8 @@
                 event.preventDefault();
 
                 // Validation
-                if (!energyBillFile) {
-                    document.getElementById("energy-bill-error").textContent = "Energy bill is required.";
+                if (energyBillFiles.length === 0) {
+                    document.getElementById("energy-bill-error").textContent = "At least one energy bill is required.";
                     notifyParentOfHeight();
                     return;
                 }
@@ -302,13 +292,14 @@
                     formData.append(`switchboard_photo_${index}`, file);
                 });
                 
-                // Add energy bill
-                if (energyBillFile) {
-                    formData.append('energy_bill', energyBillFile);
-                }
+                // Add energy bills
+                energyBillFiles.forEach((file, index) => {
+                    formData.append(`energy_bill_${index}`, file);
+                });
                 
                 // Add metadata
                 formData.append('switchboard_photos_count', switchboardFiles.length.toString());
+                formData.append('energy_bills_count', energyBillFiles.length.toString());
                 formData.append('page_url', window.location.href);
                 formData.append('page_title', document.title);
                 formData.append('submission_time', new Date().toISOString());
@@ -375,6 +366,61 @@
             updateSwitchboardPreview();
         }
 
+        function handleEnergyBillFiles(files) {
+            // Filter for PDF files only
+            const pdfFiles = files.filter(file => file.type === 'application/pdf');
+            
+            // Check if any non-PDF files were selected
+            if (pdfFiles.length !== files.length) {
+                document.getElementById("energy-bill-error").textContent = "Only PDF files are accepted.";
+                notifyParentOfHeight();
+                return;
+            }
+            
+            // Check if adding these files would exceed the limit
+            const totalFiles = energyBillFiles.length + pdfFiles.length;
+            if (totalFiles > 4) {
+                document.getElementById("energy-bill-error").textContent = "Maximum 4 PDF files allowed.";
+                notifyParentOfHeight();
+                return;
+            }
+            
+            // Add files to array
+            energyBillFiles = [...energyBillFiles, ...pdfFiles];
+            document.getElementById("energy-bill-error").textContent = "";
+            updateEnergyBillPreview();
+        }
+
+        function updateEnergyBillPreview() {
+            const preview = document.getElementById("energy-bill-preview");
+            if (energyBillFiles.length === 0) {
+                preview.innerHTML = "";
+                notifyParentOfHeight();
+                return;
+            }
+
+            const fileList = document.createElement("ul");
+            fileList.className = "file-list";
+
+            energyBillFiles.forEach((file, index) => {
+                const listItem = document.createElement("li");
+                listItem.innerHTML = `
+                    <span>${file.name}</span>
+                    <button type="button" class="remove-file" onclick="removeEnergyBillFile(${index})">Remove</button>
+                `;
+                fileList.appendChild(listItem);
+            });
+
+            preview.innerHTML = "";
+            preview.appendChild(fileList);
+            notifyParentOfHeight();
+        }
+
+        function removeEnergyBillFile(index) {
+            energyBillFiles.splice(index, 1);
+            updateEnergyBillPreview();
+        }
+
         function showLoading() {
             document.getElementById("loading-overlay").style.display = "flex";
             document.getElementById("energy-form").classList.add("form-disabled");
@@ -418,8 +464,8 @@
 
         <label for="energy-bill">Energy Bill <span class="required">*</span>:</label>
         <div class="single-file-upload">
-            <input type="file" id="energy-bill" name="energy_bill" accept=".pdf" required>
-            <small>Accepts PDF files only.</small>
+            <input type="file" id="energy-bill" name="energy_bill" accept=".pdf" multiple>
+            <small>Accepts PDF files only. You can upload 1-4 files.</small>
         </div>
         <div id="energy-bill-preview" class="file-preview"></div>
         <div id="energy-bill-error" class="error-message"></div>
